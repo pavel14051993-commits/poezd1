@@ -1,0 +1,58 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Capacitor
+        run: npm install
+
+      - name: Create iOS project
+        run: npx cap add ios
+
+      - name: App name and icon
+        run: |
+          PL=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Проезд" "$PL" || \
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Проезд" "$PL"
+          if [ -f resources/icon.png ]; then
+            for f in ios/App/App/Assets.xcassets/AppIcon.appiconset/*.png; do
+              w=$(sips -g pixelWidth "$f" | awk '/pixelWidth/{print $2}')
+              cp resources/icon.png "$f"
+              sips -z "$w" "$w" "$f" > /dev/null
+            done
+          fi
+
+      - name: Copy web files
+        run: npx cap sync ios
+
+      - name: Build (unsigned)
+        run: |
+          cd ios/App
+          if [ -d App.xcworkspace ]; then T="-workspace App.xcworkspace"; else T="-project App.xcodeproj"; fi
+          xcodebuild $T -scheme App -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+
+      - name: Pack IPA
+        run: |
+          mkdir -p Payload
+          cp -R ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qr Proezd.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Proezd-ipa
+          path: Proezd.ipa
+          retention-days: 30
