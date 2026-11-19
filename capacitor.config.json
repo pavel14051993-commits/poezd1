@@ -1,0 +1,13 @@
+{
+  "appId": "pl.proezd.app",
+  "appName": "Проезд",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Проезд</title>
+<style>
+:root{
+  --bg:#f3f1ec; --bg2:#e9e6df; --card:#ffffff; --text:#16181d; --muted:#6c707a; --line:#e3e0d8;
+  --accent:#0f7a4a; --accent2:#13a364; --hero1:#0f7a4a; --hero2:#0b5a37;
+  --ok:#14a35f; --warn:#e08a00; --bad:#e0413a; --chip:#eef0ea;
+  --km:#1c8a3f; --kmbg:#e3f4e6; --ic:#c2272d; --icbg:#fbe5e5; --other:#4b5563; --otherbg:#eceef2;
+  --shadow:0 1px 2px rgba(20,20,30,.05),0 6px 20px rgba(20,20,30,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1013; --bg2:#15181d; --card:#181b21; --text:#f2f3f5; --muted:#8d929c; --line:#262a31;
+    --accent:#2fd182; --accent2:#22b06c; --hero1:#13573a; --hero2:#0b3424;
+    --chip:#22262d; --kmbg:#163223; --km:#5fd98a; --icbg:#3a1a1c; --ic:#ff7a7f; --otherbg:#252a32; --other:#c3c8d0;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none}
+body{min-height:100vh;padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 18px)}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* Шапка */
+.top{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 14px}
+.brand{font-size:28px;font-weight:800;letter-spacing:-.6px}
+.brand span{color:var(--accent)}
+.iconbtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--card);box-shadow:var(--shadow);margin-left:8px}
+.iconbtn svg{width:20px;height:20px}
+.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Маршрут */
+.route{position:relative;background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:16px 64px 16px 18px}
+.stop{display:flex;align-items:center;gap:12px}
+.stop+.stop{margin-top:14px}
+.dot{width:12px;height:12px;border-radius:50%;border:3px solid var(--accent);flex:none}
+.stop.end .dot{background:var(--accent)}
+.vline{position:absolute;left:23px;top:36px;height:22px;border-left:2px dashed var(--line)}
+.stop .lbl{font-size:12px;color:var(--muted)}
+.stop .nm{font-size:17px;font-weight:650;line-height:1.2}
+.swap{position:absolute;right:14px;top:50%;margin-top:-22px;width:44px;height:44px;border-radius:50%;
+  background:var(--chip);display:grid;place-items:center;transition:transform .35s cubic-bezier(.3,1.4,.5,1)}
+.swap.turn{transform:rotate(180deg)}
+.swap svg{width:22px;height:22px;color:var(--accent)}
+
+/* Ближайший поезд */
+.hero{margin-top:14px;border-radius:24px;padding:18px 18px 16px;color:#fff;
+  background:radial-gradient(120% 140% at 100% 0%,var(--accent2) 0%,var(--hero1) 45%,var(--hero2) 100%);
+  box-shadow:0 10px 30px rgba(15,122,74,.28);position:relative;overflow:hidden}
+.hero.cancel{background:linear-gradient(135deg,#8b2a2a,#4d1717)}
+.hero .cap{font-size:13px;opacity:.8;font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+.hero .row{display:flex;align-items:flex-end;justify-content:space-between;margin-top:6px}
+.hero .big{font-size:56px;font-weight:800;letter-spacing:-2px;line-height:1}
+.hero .old{font-size:20px;opacity:.6;text-decoration:line-through;margin-right:8px}
+.hero .in{text-align:right}
+.hero .in b{display:block;font-size:30px;font-weight:800;letter-spacing:-.8px;line-height:1}
+.hero .in small{font-size:13px;opacity:.8}
+.hero .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.hero .tag{background:rgba(255,255,255,.16);border-radius:999px;padding:5px 10px;font-size:13px;font-weight:600}
+.hero .tag.st-warn{background:#ffb02e;color:#3a2500}
+.hero .tag.st-bad{background:#ff5b54;color:#fff}
+.hero .tag.st-ok{background:rgba(255,255,255,.95);color:#0b5a37}
+.hero .sub{margin-top:10px;font-size:14px;opacity:.9}
+.hero .glow{position:absolute;right:-40px;bottom:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07)}
+
+/* Список */
+.sect{display:flex;justify-content:space-between;align-items:baseline;margin:22px 4px 10px}
+.sect h2{font-size:20px;margin:0;font-weight:750;letter-spacing:-.3px}
+.sect span{font-size:13px;color:var(--muted)}
+.card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;
+  animation:rise .35s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card.cx{opacity:.6}
+.times{display:flex;align-items:center;gap:10px}
+.t{min-width:62px}
+.t b{font-size:24px;font-weight:750;letter-spacing:-.5px;display:block;line-height:1.05}
+.t s{font-size:13px;color:var(--muted)}
+.t.r{text-align:right}
+.t.r b{font-size:19px;font-weight:650}
+.mid{flex:1;display:flex;flex-direction:column;align-items:center;font-size:12px;color:var(--muted)}
+.track{width:100%;height:2px;background:var(--line);position:relative;margin:6px 0 4px;border-radius:2px}
+.track:before,.track:after{content:"";position:absolute;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--card);border:2px solid var(--muted)}
+.track:before{left:-2px}.track:after{right:-2px;background:var(--muted)}
+.foot{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:700;border-radius:8px;padding:3px 7px;background:var(--otherbg);color:var(--other)}
+.chip.KM{background:var(--kmbg);color:var(--km)}
+.chip.IC{background:var(--icbg);color:var(--ic)}
+.foot .info{font-size:13px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{font-size:12px;font-weight:700;border-radius:999px;padding:4px 9px;white-space:nowrap}
+.pill.ok{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.pill.plan{background:var(--chip);color:var(--muted)}
+.late b{color:var(--warn)} .vlate b{color:var(--bad)}
+.cx .t b{text-decoration:line-through}
+
+.empty{text-align:center;color:var(--muted);padding:50px 20px;line-height:1.5}
+.empty b{display:block;color:var(--text);font-size:18px;margin-bottom:6px}
+.skel{height:86px;border-radius:20px;margin-bottom:10px;background:linear-gradient(90deg,var(--bg2) 25%,var(--card) 50%,var(--bg2) 75%);background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.status{text-align:center;font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6}
+.banner{background:color-mix(in srgb,var(--bad) 14%,var(--card));color:var(--text);border-radius:16px;padding:12px 14px;margin-top:12px;font-size:14px;line-height:1.4}
+.demo{background:color-mix(in srgb,var(--warn) 18%,var(--card))}
+
+/* Настройки */
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s;z-index:10}
+.veil.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;background:var(--card);border-radius:26px 26px 0 0;
+  padding:10px 20px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.9,.3,1);
+  max-height:92vh;overflow:auto;-webkit-user-select:text;user-select:text}
+.sheet.on{transform:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.sheet h3{margin:0 0 4px;font-size:22px;letter-spacing:-.3px}
+.sheet p{color:var(--muted);font-size:14px;margin:0 0 16px;line-height:1.45}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px 4px;font-weight:600}
+.field input,.field select{width:100%;font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1.5px solid var(--line);
+  border-radius:14px;padding:13px 14px;outline:none;-webkit-appearance:none;appearance:none}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin:-6px 4px 14px;line-height:1.45}
+.btn{display:block;width:100%;border-radius:16px;padding:15px;font-weight:700;font-size:16px;text-align:center}
+.btn.pri{background:var(--accent);color:#fff}
+.btn.sec{color:var(--accent);margin-top:6px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand">Про<span>езд</span></div>
+  <div style="display:flex">
+    <button class="iconbtn" id="refresh" aria-label="Обновить">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+    </button>
+    <button class="iconbtn" id="gear" aria-label="Настройки">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="route">
+  <div class="vline"></div>
+  <div class="stop"><div class="dot"></div><div><div class="lbl">Откуда</div><div class="nm" id="fromNm">—</div></div></div>
+  <div class="stop end"><div class="dot"></div><div><div class="lbl">Куда</div><div class="nm" id="toNm">—</div></div></div>
+  <button class="swap" id="swap" aria-label="Поменять направление">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 20l-4-4M7 20l4-4"/><path d="M17 20V4M17 4l-4 4M17 4l4 4"/></svg>
+  </button>
+</div>
+
+<div id="banner"></div>
+<div id="hero"></div>
+<div id="list"></div>
+<div class="status num" id="status"></div>
+
+<div class="veil" id="veil"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <h3 id="shTitle">Настройки</h3>
+  <p id="shText">Ключ хранится только на этом iPhone.</p>
+  <div class="field"><label>Ключ API PKP PLK</label><input id="fKey" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Вставьте ключ"></div>
+  <div class="field"><label>Станция в Варшаве</label><select id="fWaw"></select></div>
+  <div class="field"><label>Станция в Минске</label><select id="fMm"></select></div>
+  <div class="hint">Показываются только поезда Koleje Mazowieckie. Показываются поезда, которые останавливаются на выбранной станции: обычные KM — на Śródmieście, RE2 — на Centralna.</div>
+  <button class="btn pri" id="save">Сохранить</button>
+  <button class="btn sec" id="reload">Заново загрузить расписание</button>
+  <button class="btn sec" id="demoBtn">Посмотреть демо</button>
+</div>
+
+<script>
+'use strict';
+/* =========================================================================
+   Логика (без DOM) — данные Otwarte Dane Kolejowe PKP PLK
+   ========================================================================= */
+const API = 'https://pdp-api.plk-sa.pl';
+const DEF_WAW = 'Warszawa Wschodnia';
+const DEF_MM = 'Mińsk Mazowiecki';
+const AUTO_REFRESH_MS = 2 * 60 * 1000;   // лимит Basic: 1000 запросов в сутки
+const MIN_LIVE_MS = 30 * 1000;
+
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const toInt = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Math.trunc(Number(v));
+const toStr = v => (v === null || v === undefined) ? null : (String(v).trim() || null);
+const isWarsaw = n => n.startsWith('Warszawa');
+const isMinsk = n => n.startsWith('Mińsk Mazowiecki');
+
+/** Время PLK: "14:05:00", "14:05", "1.02:10:00" или "PT14H5M" → Date. */
+function composeTime(opDate, dayOffset, time) {
+  if (!time || !opDate || opDate.length < 10) return null;
+  let extra = 0, h = 0, m = 0;
+  const c = /^(?:(\d+)\.)?(\d{1,2}):(\d{2})/.exec(time);
+  if (c) { extra = +(c[1] || 0); h = +c[2]; m = +c[3]; }
+  else {
+    const i = /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?/.exec(time);
+    if (!i) return null;
+    extra = +(i[1] || 0); h = +(i[2] || 0); m = +(i[3] || 0);
+  }
+  const [y, mo, d] = opDate.slice(0, 10).split('-').map(Number);
+  if (!y || !mo || !d) return null;
+  return new Date(y, mo - 1, d + (dayOffset || 0) + extra, h, m);
+}
+
+class ApiError extends Error {
+  constructor(msg, auth = false) { super(msg); this.auth = auth; }
+}
+
+class Plk {
+  constructor(key, fetchFn) { this.key = key; this.fetch = fetchFn; this.remaining = null; }
+  async get(path, query) {
+    const qs = Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 40000) : null;
+    let r;
+    try {
+      r = await this.fetch(`${API}${path}?${qs}`, {
+        headers: { 'X-API-Key': this.key, 'Accept': 'application/json' },
+        signal: ctrl ? ctrl.signal : undefined,
+      });
+    } catch (e) {
+      throw new ApiError('Нет связи с PLK. Проверьте интернет.');
+    } finally { if (timer) clearTimeout(timer); }
+    const rem = r.headers && r.headers.get ? toInt(r.headers.get('x-ratelimit-daily-remaining')) : null;
+    if (rem !== null) this.remaining = rem;
+    if (r.status === 401 || r.status === 403)
+      throw new ApiError(`Ключ API не принят (код ${r.status}). Проверьте его в настройках.`, true);
+    if (r.status === 429) throw new ApiError('Исчерпан лимит запросов PLK. Подождите немного.');
+    if (r.status !== 200) throw new ApiError(`Ошибка PLK (код ${r.status}).`);
+    return await r.json();
+  }
+}
+
+class Repo {
+  constructor(store) { this.store = store; this.names = {}; this.loadNames(); }
+  loadNames() { try { this.names = JSON.parse(this.store.get('names') || '{}'); } catch { this.names = {}; } }
+  saveNames() { this.store.set('names', JSON.stringify(this.names)); }
+
+  absorbNames(raw) {
+    if (!raw) return;
+    const put = (id, nm) => { id = toInt(id); nm = toStr(nm); if (id !== null && nm) this.names[id] = nm; };
+    if (Array.isArray(raw)) raw.forEach(v => v && typeof v === 'object' && put(v.id, v.name));
+    else if (typeof raw === 'object')
+      Object.entries(raw).forEach(([k, v]) => typeof v === 'string' ? put(k, v) : (v && put(v.id ?? k, v.name)));
+  }
+
+  async searchStations(api, q, ok) {
+    const res = await api.get('/api/v1/dictionaries/stations', { search: q, pageSize: '500' });
+    const list = res && res.stations;
+    this.absorbNames(list);
+    return Array.isArray(list) ? list.filter(s => s && toStr(s.name) && ok(s.name)).map(s => toInt(s.id)).filter(x => x !== null) : [];
+  }
+
+  /** Расписание на вчера–завтра; кэш на сутки. */
+  async schedule(api, toMinsk, force = false, now = new Date()) {
+    const key = `sched_${toMinsk ? 'wm' : 'mw'}_${ymd(now)}`;
+    if (!force) {
+      const c = this.store.get(key);
+      if (c) { try { return JSON.parse(c); } catch {} }
+    }
+    const from = addDays(now, -1), to = addDays(now, 1);
+    const base = { dateFrom: ymd(from), dateTo: ymd(to), fullRoute: 'false', dictionaries: 'true' };
+    let res = null, raw = [];
+    try {
+      res = await api.get('/api/v1/schedules', { ...base,
+        from: toMinsk ? 'Warszawa' : 'Mińsk Mazowiecki', to: toMinsk ? 'Mińsk Mazowiecki' : 'Warszawa' });
+      if (res && Array.isArray(res.routes)) raw = res.routes;
+    } catch (e) { if (e.auth) throw e; }
+    if (!raw.length) {
+      const waw = await this.searchStations(api, 'Warszawa', isWarsaw);
+      const mm = await this.searchStations(api, 'Mińsk Mazowiecki', isMinsk);
+      if (!waw.length || !mm.length) throw new ApiError('Не удалось найти станции в справочнике PLK.');
+      res = await api.get('/api/v1/schedules', { ...base,
+        fromStations: (toMinsk ? waw : mm).join(','), toStations: (toMinsk ? mm : waw).join(',') });
+      if (res && Array.isArray(res.routes)) raw = res.routes;
+    }
+    if (res && res.dictionaries) this.absorbNames(res.dictionaries.stations);
+
+    const lo = ymd(from), hi = ymd(to);
+    const routes = [];
+    const missing = new Set();
+    for (const r of raw) {
+      if (!r || typeof r !== 'object') continue;
+      const sid = toInt(r.scheduleId), oid = toInt(r.orderId);
+      if (sid === null || oid === null) continue;
+      const dates = (r.operatingDates || []).map(d => String(d).slice(0, 10)).filter(d => d.length === 10 && d >= lo && d <= hi);
+      if (!dates.length) continue;
+      let number = toStr(r.nationalNumber) || '';
+      const st = (r.stations || []).filter(s => s && typeof s === 'object')
+        .sort((a, b) => (toInt(a.orderNumber) || 0) - (toInt(b.orderNumber) || 0));
+      const stops = [];
+      for (const s of st) {
+        const id = toInt(s.stationId);
+        if (id === null) continue;
+        if (!this.names[id]) missing.add(id);
+        if (!number) number = toStr(s.departureTrainNumber) || toStr(s.arrivalTrainNumber) || '';
+        stops.push({ id, ad: toInt(s.arrivalDay), at: toStr(s.arrivalTime), dd: toInt(s.departureDay), dt: toStr(s.departureTime),
+          pl: toStr(s.departurePlatform) || toStr(s.arrivalPlatform), tr: toStr(s.departureTrack) || toStr(s.arrivalTrack),
+          st: toInt(s.stopTypeId) });
+      }
+      routes.push({ sid, oid, toid: toInt(r.trainOrderId), c: toStr(r.carrierCode) || '', k: toStr(r.commercialCategorySymbol) || '',
+        n: number, nm: toStr(r.name) || '', d: dates, s: stops });
+    }
+    if ([...missing].some(id => !this.names[id])) {
+      await this.searchStations(api, 'Warszawa', isWarsaw);
+      await this.searchStations(api, 'Mińsk', isMinsk);
+    }
+    this.saveNames();
+    this.store.keys().filter(k => k.startsWith('sched_') && k !== key).forEach(k => this.store.del(k));
+    this.store.set(key, JSON.stringify(routes));
+    return routes;
+  }
+
+  trips(routes, toMinsk, waw, mm) {
+    const board = toMinsk ? waw : mm, alight = toMinsk ? mm : waw;
+    const out = [];
+    for (const r of routes) {
+      if (r.c === 'IC') continue; // поезда Intercity не показываем
+      const bi = r.s.findIndex(s => this.names[s.id] === board && s.st !== 2);
+      if (bi < 0) continue;
+      const ai = r.s.findIndex(s => this.names[s.id] === alight && s.st !== 1);
+      if (ai <= bi) continue;
+      const b = r.s[bi], a = r.s[ai];
+      for (const d of r.d) {
+        const dep = composeTime(d, b.dd ?? b.ad, b.dt || b.at);
+        const arr = composeTime(d, a.ad ?? a.dd, a.at || a.dt);
+        if (!dep || !arr) continue;
+        out.push({ r, opDate: d, from: board, to: alight, dep, arr, pl: b.pl, tr: b.tr,
+          live: false, status: null, depDelay: null, arrDelay: null, cancelled: false, departed: false });
+      }
+    }
+    out.sort((x, y) => x.dep - y.dep);
+    return out;
+  }
+
+  idOf(name) { const e = Object.entries(this.names).find(([, v]) => v === name); return e ? +e[0] : null; }
+
+  async applyLive(api, trips, boardName, alightName) {
+    const bid = this.idOf(boardName), aid = this.idOf(alightName);
+    if (bid === null) return;
+    const res = await api.get('/api/v1/operations', {
+      stations: [bid, aid].filter(x => x !== null).join(','), withPlanned: 'true', pageSize: '2000' });
+    if (!res || !Array.isArray(res.trains)) return;
+    const byKey = {};
+    for (const t of res.trains) {
+      if (!t) continue;
+      const sid = toInt(t.scheduleId), od = toStr(t.operatingDate);
+      if (sid === null || !od || od.length < 10) continue;
+      const day = od.slice(0, 10), oid = toInt(t.orderId), toid = toInt(t.trainOrderId);
+      if (oid !== null) byKey[`${sid}|${oid}|${day}`] = t;
+      if (toid !== null && !byKey[`${sid}|${toid}|${day}`]) byKey[`${sid}|${toid}|${day}`] = t;
+    }
+    for (const tr of trips) {
+      const t = byKey[`${tr.r.sid}|${tr.r.oid}|${tr.opDate}`] || (tr.r.toid !== null ? byKey[`${tr.r.sid}|${tr.r.toid}|${tr.opDate}`] : null);
+      if (!t) continue;
+      tr.live = true;
+      tr.status = toStr(t.trainStatus);
+      const running = tr.status === 'P' || tr.status === 'C';
+      for (const s of (t.stations || [])) {
+        if (!s) continue;
+        const id = toInt(s.stationId);
+        if (id === bid) {
+          tr.depDelay = toInt(s.departureDelayMinutes) ?? toInt(s.arrivalDelayMinutes) ?? (running ? 0 : null);
+          tr.departed = s.isConfirmed === true && !!s.actualDeparture;
+          if (s.isCancelled === true) tr.cancelled = true;
+        } else if (id === aid) {
+          tr.arrDelay = toInt(s.arrivalDelayMinutes) ?? toInt(s.departureDelayMinutes) ?? (running ? (tr.depDelay ?? 0) : null);
+        }
+      }
+      if (tr.status === 'X') tr.cancelled = true;
+    }
+  }
+}
+
+const expDep = t => new Date(t.dep.getTime() + (t.depDelay || 0) * 60000);
+const expArr = t => new Date(t.arr.getTime() + (t.arrDelay ?? t.depDelay ?? 0) * 60000);
+
+/** Демо-данные: похожие на реальные поезда, относительно текущего времени. */
+function demoTrips(toMinsk, waw, mm, now = new Date()) {
+  const out = [];
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), Math.ceil(now.getMinutes() / 10) * 10 - 10);
+  const plan = [[4, 'KM', 'R', '13024', '', 0, 'P'], [21, 'IC', 'IC', '1123', 'RADZIWIŁŁ', 6, 'P'], [34, 'KM', 'R', '13026', '', 0, 'S'],
+    [64, 'KM', 'R', '13028', '', 12, 'P'], [81, 'IC', 'IC', '11103', 'STARZYŃSKI', null, 'S'], [94, 'KM', 'R', '13030', '', null, 'X'],
+    [124, 'KM', 'R', '13032', '', null, 'S'], [154, 'KM', 'R', '13034', '', null, null], [171, 'IC', 'IC', '1125', 'NIEMCEWICZ', null, null],
+    [184, 'KM', 'R', '13036', '', null, null], [214, 'KM', 'R', '13038', '', null, null]];
+  for (const [off, c, k, n, nm, delay, status] of plan) {
+    if (c === 'IC') continue;
+    const dep = new Date(base.getTime() + off * 60000);
+    const dur = c === 'IC' ? 26 : 41;
+    out.push({ r: { sid: 0, oid: off, c, k, n, nm }, opDate: ymd(dep), from: toMinsk ? waw : mm, to: toMinsk ? mm : waw, dep,
+      arr: new Date(dep.getTime() + dur * 60000), pl: c === 'IC' ? '2' : '1', tr: c === 'IC' ? '3' : '1',
+      live: status !== null, status, depDelay: status === 'P' ? delay : null, arrDelay: null, cancelled: status === 'X', departed: false });
+  }
+  return out;
+}
+
+if (typeof module !== 'undefined') module.exports = { composeTime, Plk, Repo, ApiError, demoTrips, expDep, ymd };
+
+/* =========================================================================
+   Интерфейс
+   ========================================================================= */
+if (typeof document !== 'undefined') (function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // Хранилище на устройстве
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+    del: k => { try { localStorage.removeItem(k); } catch {} },
+    keys: () => { try { return Object.keys(localStorage); } catch { return []; } },
+  };
+
+  const S = {
+    key: store.get('apiKey') || '',
+    toMinsk: store.get('toMinsk') !== '0',
+    waw: store.get('waw') || DEF_WAW,
+    mm: store.get('mm') || DEF_MM,
+    demo: false, routes: [], trips: [], loading: false, error: null, liveAt: null, remaining: null,
+  };
+  const repo = new Repo(store);
+  let timer = null;
+
+  function render() {
+    const from = S.toMinsk ? S.waw : S.mm, to = S.toMinsk ? S.mm : S.waw;
+    $('fromNm').textContent = from;
+    $('toNm').textContent = to;
+    $('refresh').classList.toggle('spin', S.loading);
+
+    let banner = '';
+    if (S.demo) banner += `<div class="banner demo">Демо-режим: данные примерные. Вставьте ключ в настройках, чтобы видеть настоящее расписание.</div>`;
+    if (S.error) banner += `<div class="banner">${esc(S.error)}</div>`;
+    $('banner').innerHTML = banner;
+
+    const now = new Date();
+    const list = S.trips;
+    if (!list.length) {
+      $('hero').innerHTML = '';
+      $('list').innerHTML = S.loading
+        ? '<div style="margin-top:14px"><div class="skel" style="height:170px;border-radius:24px"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>'
+        : `<div class="empty"><b>${S.key || S.demo ? 'Поездов не найдено' : 'Нужен ключ API'}</b>${S.key || S.demo ? 'Проверьте станции в настройках или обновите расписание.' : 'Откройте настройки и вставьте ключ PKP PLK.'}</div>`;
+    } else {
+      const first = list.find(t => !t.cancelled) || list[0];
+      $('hero').innerHTML = heroHtml(first, now);
+      const rest = list.filter(t => t !== first);
+      $('list').innerHTML = rest.length
+        ? `<div class="sect"><h2>Дальше</h2><span>${rest.length} ${plural(rest.length, 'поезд', 'поезда', 'поездов')}</span></div>` +
+          rest.map((t, i) => cardHtml(t, now, i)).join('')
+        : '';
+    }
+    const bits = [];
+    if (S.liveAt) bits.push(`опоздания обновлены в ${hm(S.liveAt)}`);
+    if (S.remaining !== null) bits.push(`запросов на сегодня: ${S.remaining}`);
+    $('status').innerHTML = (bits.length ? esc(bits.join(' · ')) + '<br>' : '') + 'Данные: PKP Polskie Linie Kolejowe';
+  }
+
+  function plural(n, a, b, c) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return a;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return b;
+    return c;
+  }
+
+  function untilText(t, now) {
+    const mins = Math.round((expDep(t) - now) / 60000);
+    if (mins <= 0) return { b: 'сейчас', s: 'отправление' };
+    if (mins < 60) return { b: `${mins} мин`, s: 'до отправления' };
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return { b: `${h} ч ${pad(m)}`, s: 'до отправления' };
+  }
+
+  function status(t) {
+    if (t.cancelled) return { cls: 'bad', txt: 'Отменён' };
+    if (t.depDelay === null) return { cls: 'plan', txt: t.live ? 'Ещё не в пути' : 'По расписанию' };
+    if (t.depDelay <= 0) return { cls: 'ok', txt: 'Вовремя' };
+    if (t.depDelay <= 15) return { cls: 'warn', txt: `+${t.depDelay} мин` };
+    return { cls: 'bad', txt: `+${t.depDelay} мин` };
+  }
+
+  function trainLabel(t) { return [t.r.k, t.r.n, t.r.nm].filter(Boolean).join(' '); }
+  function carrierChip(t) {
+    const c = t.r.c === 'KM' ? 'KM' : t.r.c === 'IC' ? 'IC' : 'other';
+    const txt = t.r.c === 'KM' ? 'KM' : t.r.c === 'IC' ? 'Intercity' : (t.r.c || '—');
+    return `<span class="chip ${c}">${esc(txt)}</span>`;
+  }
+  function placeText(t) {
+    return [t.pl && `перрон ${t.pl}`, t.tr && `путь ${t.tr}`].filter(Boolean).join(', ');
+  }
+  function dayWord(d, now) {
+    const a = ymd(d), today = ymd(now), tom = ymd(addDays(now, 1));
+    return a === today ? '' : a === tom ? 'завтра' : '';
+  }
+
+  function heroHtml(t, now) {
+    const st = status(t);
+    const u = untilText(t, now);
+    const delayed = !t.cancelled && (t.depDelay || 0) > 0;
+    const dur = Math.round((t.arr - t.dep) / 60000);
+    const tags = [
+      `<span class="tag st-${st.cls === 'plan' ? '' : st.cls}">${esc(st.txt)}</span>`,
+      `<span class="tag">${esc(t.r.c === 'IC' ? 'Intercity' : t.r.c === 'KM' ? 'Koleje Mazowieckie' : t.r.c)}</span>`,
+      placeText(t) ? `<span class="tag">${esc(placeText(t))}</span>` : '',
+    ].join('');
+    const dw = dayWord(t.dep, now);
+    return `<div class="hero ${t.cancelled ? 'cancel' : ''}"><div class="glow"></div>
+      <div class="cap">Ближайший поезд${dw ? ' · ' + dw : ''}</div>
+      <div class="row">
+        <div class="num">${delayed ? `<span class="old">${hm(t.dep)}</span>` : ''}<span class="big">${hm(expDep(t))}</span></div>
+        <div class="in num">${t.cancelled ? '<b>—</b><small>поезд отменён</small>' : `<b>${u.b}</b><small>${u.s}</small>`}</div>
+      </div>
+      <div class="sub num">Прибытие в ${hm(expArr(t))} · ${dur} мин в пути · ${esc(trainLabel(t))}</div>
+      <div class="meta">${tags}</div>
+    </div>`;
+  }
+
+  function cardHtml(t, now, i) {
+    const st = status(t);
+    const d = t.depDelay || 0;
+    const cls = t.cancelled ? '' : d > 15 ? 'vlate' : d > 0 ? 'late' : '';
+    const dur = Math.round((t.arr - t.dep) / 60000);
+    const dw = dayWord(t.dep, now);
+    const info = [trainLabel(t), placeText(t)].filter(Boolean).join(' · ');
+    return `<div class="card ${t.cancelled ? 'cx' : ''}" style="animation-delay:${Math.min(i, 8) * 30}ms">
+      <div class="times num">
+        <div class="t ${cls}"><b>${hm(expDep(t))}</b>${d > 0 && !t.cancelled ? `<s>${hm(t.dep)}</s>` : `<s style="text-decoration:none">${dw || '&nbsp;'}</s>`}</div>
+        <div class="mid"><div class="track"></div>${dur} мин</div>
+        <div class="t r"><b>${hm(expArr(t))}</b><s style="text-decoration:none">прибытие</s></div>
+      </div>
+      <div class="foot">${carrierChip(t)}<span class="info">${esc(info)}</span><span class="pill ${st.cls}">${esc(st.txt)}</span></div>
+    </div>`;
+  }
+
+  async function load(opts = {}) {
+    if (S.loading) return;
+    if (S.demo) { S.trips = demoTrips(S.toMinsk, S.waw, S.mm); S.error = null; render(); return; }
+    if (!S.key) { render(); return; }
+    S.loading = true; S.error = null; render();
+    const api = new Plk(S.key, (u, o) => fetch(u, o));
+    try {
+      S.routes = await repo.schedule(api, S.toMinsk, !!opts.forceSchedule);
+      const now = new Date();
+      const all = repo.trips(S.routes, S.toMinsk, S.waw, S.mm)
+        .filter(t => t.dep > new Date(now - 2 * 3600e3) && t.dep < new Date(+now + 24 * 3600e3));
+      const tooSoon = S.liveAt && (now - S.liveAt) < MIN_LIVE_MS && !opts.user;
+      if (!tooSoon) {
+        try {
+          await repo.applyLive(api, all, S.toMinsk ? S.waw : S.mm, S.toMinsk ? S.mm : S.waw);
+          S.liveAt = new Date();
+        } catch (e) {
+          if (e.auth) throw e;
+          S.error = 'Опоздания сейчас недоступны: ' + e.message;
+        }
+      } else {
+        const old = new Map(S.trips.map(t => [`${t.r.sid}|${t.r.oid}|${t.opDate}`, t]));
+        for (const t of all) {
+          const o = old.get(`${t.r.sid}|${t.r.oid}|${t.opDate}`);
+          if (o) Object.assign(t, { live: o.live, status: o.status, depDelay: o.depDelay, arrDelay: o.arrDelay, cancelled: o.cancelled, departed: o.departed });
+        }
+      }
+      S.trips = all.filter(t => expDep(t) > new Date(now - 60000) || (t.cancelled && t.dep > now));
+      if (api.remaining !== null) S.remaining = api.remaining;
+    } catch (e) {
+      S.error = e instanceof ApiError ? e.message : 'Не удалось разобрать ответ PLK: ' + e.message;
+      if (e.auth) openSheet();
+    }
+    S.loading = false;
+    render();
+  }
+
+  function startTimer() {
+    clearInterval(timer);
+    timer = setInterval(() => load(), AUTO_REFRESH_MS);
+  }
+
+  // Настройки
+  function fillSelect(sel, side, current) {
+    const set = new Set([current]);
+    for (const r of S.routes) for (const s of r.s) {
+      const n = repo.names[s.id];
+      if (n && (side === 'waw' ? isWarsaw(n) : isMinsk(n))) set.add(n);
+    }
+    if (side === 'waw') ['Warszawa Wschodnia', 'Warszawa Centralna', 'Warszawa Śródmieście', 'Warszawa Zachodnia'].forEach(n => set.add(n));
+    else ['Mińsk Mazowiecki', 'Mińsk Mazowiecki Anielina'].forEach(n => set.add(n));
+    sel.innerHTML = [...set].sort().map(n => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('');
+  }
+  function openSheet(first = false) {
+    $('shTitle').textContent = first ? 'Добро пожаловать' : 'Настройки';
+    $('shText').textContent = first
+      ? 'Вставьте ключ API от PKP PLK (Otwarte Dane Kolejowe). Он хранится только на этом iPhone.'
+      : 'Ключ хранится только на этом iPhone.';
+    $('fKey').value = S.key;
+    fillSelect($('fWaw'), 'waw', S.waw);
+    fillSelect($('fMm'), 'mm', S.mm);
+    $('veil').classList.add('on'); $('sheet').classList.add('on');
+  }
+  function closeSheet() { $('veil').classList.remove('on'); $('sheet').classList.remove('on'); document.activeElement && document.activeElement.blur(); }
+
+  $('gear').onclick = () => openSheet();
+  $('veil').onclick = closeSheet;
+  $('refresh').onclick = () => load({ user: true });
+  $('swap').onclick = () => {
+    S.toMinsk = !S.toMinsk; store.set('toMinsk', S.toMinsk ? '1' : '0');
+    $('swap').classList.toggle('turn');
+    S.trips = []; S.routes = []; S.liveAt = null;
+    load({ user: true });
+  };
+  $('save').onclick = () => {
+    const k = $('fKey').value.trim();
+    const changed = k !== S.key;
+    S.key = k; S.waw = $('fWaw').value; S.mm = $('fMm').value;
+    store.set('apiKey', k); store.set('waw', S.waw); store.set('mm', S.mm);
+    if (k) S.demo = false;
+    closeSheet();
+    S.liveAt = null;
+    load({ user: true, forceSchedule: changed && !S.routes.length });
+    startTimer();
+  };
+  $('reload').onclick = () => { closeSheet(); load({ user: true, forceSchedule: true }); };
+  $('demoBtn').onclick = () => { S.demo = true; closeSheet(); load(); };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { load(); startTimer(); } else clearInterval(timer);
+  });
+  // Обратный отсчёт без запросов к API
+  setInterval(() => { if (!S.loading) render(); }, 15000);
+
+  render();
+  if (!S.key) {
+    if (/[?&]demo\b/.test(location.search)) { S.demo = true; load(); } else openSheet(true);
+  } else { load(); startTimer(); }
+})();
+</script>
+</body>
+</html>
